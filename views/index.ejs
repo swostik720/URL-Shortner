@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 5px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="url"] {
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 16px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .url-list {
+      margin-top: 30px;
+    }
+
+    .url-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background-color: #f1f1f1;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    .url-item a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .url-item a:hover {
+      text-decoration: underline;
+    }
+
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>URL Shortener</h1>
+
+    <form id="url-form">
+      <input type="url" id="originalUrl" placeholder="Enter your original URL" required>
+      <button type="submit">Shorten URL</button>
+    </form>
+
+    <div class="url-list" id="url-list"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('url-form');
+    const urlList = document.getElementById('url-list');
+
+    // Fetch all URLs and display them
+    async function fetchUrls() {
+      try {
+        const response = await fetch('/api/urls');
+        const urls = await response.json();
+        urlList.innerHTML = '';
+        urls.forEach(url => {
+          const urlItem = document.createElement('div');
+          urlItem.classList.add('url-item');
+          urlItem.innerHTML = `
+            <span><a href="/urls/${url.shortUrl}" target="_blank">${url.originalUrl}</a></span>
+            <span><a href="/urls/${url.shortUrl}" target="_blank">${url.shortUrl}</a></span>
+            <button class="delete-btn" data-id="${url._id}">Delete</button>
+          `;
+          urlList.appendChild(urlItem);
+        });
+
+        // Add event listeners for delete buttons
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+          button.addEventListener('click', deleteUrl);
+        });
+      } catch (error) {
+        console.error('Error fetching URLs:', error);
+      }
+    }
+
+    // Handle URL submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const originalUrl = document.getElementById('originalUrl').value;
+
+      try {
+        const response = await fetch('/api/urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ originalUrl }),
+        });
+        const newUrl = await response.json();
+        fetchUrls();
+        document.getElementById('originalUrl').value = '';
+      } catch (error) {
+        console.error('Error submitting URL:', error);
+      }
+    });
+
+    // Handle delete URL
+    async function deleteUrl(e) {
+      const urlId = e.target.getAttribute('data-id');
+      try {
+        const response = await fetch(`/api/urls/${urlId}`, {
+          method: 'DELETE',
+        });
+        const deletedUrl = await response.json();
+        fetchUrls();  // Re-fetch URLs after deletion
+      } catch (error) {
+        console.error('Error deleting URL:', error);
+      }
+    }
+
+    // Initial load of URLs
+    fetchUrls();
+  </script>
+
+</body>
+
+</html>
